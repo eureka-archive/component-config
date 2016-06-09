@@ -1,0 +1,9 @@
+
+# Cache Config
+
+driver: File
+params:
+  user: testuser
+  pass: testpass
+  host: localhost
+version: 1

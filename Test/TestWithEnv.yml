@@ -1,0 +1,26 @@
+
+# Cache Config
+
+prod:
+  driver: Memcache
+  params:  
+  	pass: prodpass
+
+
+
+
+all:
+  driver: File
+  params:
+    user: testuser
+    pass: testpass
+    host: localhost
+
+
+
+
+dev:
+  params:
+    pass: userpass
+    debug: true
+  version: 1
