@@ -9,8 +9,6 @@
 
 namespace Eureka\Component\Config;
 
-use Eureka\Component\Debug\Debug;
-
 /**
  * Configuration class.
  *
