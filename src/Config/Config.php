@@ -13,49 +13,36 @@ namespace Eureka\Component\Config;
  * Configuration class.
  *
  * @author Romain Cottard
- * @version 2.1.0
  */
 class Config
 {
     /**
-     * Config file written in Yaml
-     *
-     * @var string FILE_YAML
+     * @var string FILE_YAML Config file written in Yaml
      */
     const FILE_YAML = 'yaml';
 
     /**
-     * Config file written in PHP
-     *
-     * @var string FILE_PHP
+     * @var string FILE_PHP Config file written in PHP
      */
     const FILE_PHP = 'php';
 
     /**
-     * Current class instance.
-     *
-     * @var Config $instance
+     * @var Config $instance Current class instance.
      */
     protected static $instance = null;
 
     /**
-     * Array of config infos
-     *
-     * @var array $config
+     * @var array $config Array of config info
      */
     protected $config = array();
 
     /**
-     * Current file loaded
-     *
-     * @var string $currentFile
+     * @var string $currentFile Current file loaded
      */
     protected $currentFile = '';
 
     /**
-     * Cache object
-     *
-     * @var object Cache object
+     * @var object Cache object Cache object
      */
     protected $cache = null;
 
@@ -64,7 +51,6 @@ class Config
      *
      * @param object|null $parser File parser.
      * @param object|null $cache Cache object.
-     * @return Config
      */
     protected function __construct($parser = null, $cache = null)
     {
@@ -111,20 +97,19 @@ class Config
      * $config->add('database.host', 'newhost');
      * $config
      *
-     * @param    string $namespace Configuration name.
-     * @param    mixed  $data Configuration value.
-     * @return   Config
+     * @param   string $namespace Configuration name.
+     * @param   mixed  $data Configuration value.
+     * @return  self
      */
     public function add($namespace, $data = null)
     {
-        //$names = explode('.', str_replace(array('/', '\\'), '.', $namespace, ));
         $names = explode('\\', $namespace);
 
         $namespace = array_shift($names);
 
         if (!isset($this->config[$namespace])) {
             $this->config[$namespace] = array();
-        }
+        };
 
         $this->addRecursive($this->config[$namespace], $names, $data);
 
@@ -134,9 +119,9 @@ class Config
     /**
      * Add config value to config array.
      *
-     * @param array $config
-     * @param array $names
-     * @param mixed $data
+     * @param  array $config
+     * @param  array $names
+     * @param  mixed $data
      * @return void
      */
     protected function addRecursive(&$config, $names, $data)
@@ -158,8 +143,8 @@ class Config
     /**
      * Add config value(s).
      *
-     * @param    mixed $config Configuration value.
-     * @return   mixed
+     * @param  mixed $config Configuration value.
+     * @return mixed
      */
     public function replace($config)
     {
@@ -194,21 +179,23 @@ class Config
             $currentDir = dirname($this->currentFile);
             foreach ($patterns['php'] as $pattern) {
 
-                switch ($pattern) {
-                    case '__DIR__':
-                        $replace = $currentDir;
-                        break;
-                    default:
-                        continue 2;
-                }
+                if (strpos($pattern, $config) !== false) {
 
-                $config = str_replace($pattern, $replace, $config);
+                    switch ($pattern) {
+                        case '__DIR__':
+                            $replace = $currentDir;
+                            break;
+                        default:
+                            continue 2;
+                    }
+
+                    $config = str_replace($pattern, $replace, $config);
+                }
             }
 
             if (false !== strpos($config, '..')) {
                 $config = realpath($config);
             }
-
         } elseif (is_array($config)) {
 
             foreach ($config as $key => $conf) {
@@ -234,8 +221,8 @@ class Config
      * $config->get('database'); // array
      * $config->get('database.user'); // string
      *
-     * @param    string $namespace Configuration name.
-     * @return   mixed
+     * @param  string $namespace Configuration name.
+     * @return mixed
      */
     public function get($namespace)
     {
@@ -247,8 +234,8 @@ class Config
     /**
      * Add config value to config array.
      *
-     * @param array $config
-     * @param array $names
+     * @param  array $config
+     * @param  array $names
      * @return mixed
      */
     protected function getRecursive(&$config, $names)
@@ -269,12 +256,12 @@ class Config
     /**
      * Get config value for config var specified.
      *
-     * @param    string $file
-     * @param    string $namespace
-     * @param    object $parser File parser
-     * @param    string $env
-     * @return   Config
-     * @throws   \Exception
+     * @param  string $file
+     * @param  string $namespace
+     * @param  object $parser File parser
+     * @param  string $env
+     * @return self
+     * @throws \Exception
      */
     public function load($file, $namespace = '', $parser = null, $env = null)
     {
