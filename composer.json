@@ -14,7 +14,7 @@
 
   "autoload": {
     "psr-4": {
-      "Eureka\\Component\\Config\\": "./src/Config"
+      "Eureka\\Component\\Config\\": "./src/Config/"
     }
   }
 
