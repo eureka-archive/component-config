@@ -153,18 +153,12 @@ class Config
                 '`EKA_[A-Z_]+`',
             ), 'php'    => array(
                 '__DIR__',
-                'DIRECTORY_SEPARATOR',
             ),
         );
 
         if (!is_array($config)) {
 
             foreach ($patterns['constants'] as $pattern) {
-
-                if (!is_string($config) || empty($config)) {
-                    continue;
-                }
-                
                 if ((bool) preg_match_all($pattern, $config, $matches)) {
 
                     $matches   = array_unique($matches[0]);
@@ -185,18 +179,12 @@ class Config
             $currentDir = dirname($this->currentFile);
             foreach ($patterns['php'] as $pattern) {
 
-                if (!is_string($config) || empty($config)) {
-                    continue;
-                }
-
                 if (strpos($pattern, $config) !== false) {
 
                     switch ($pattern) {
                         case '__DIR__':
                             $replace = $currentDir;
                             break;
-                        case 'DIRECTORY_SEPARATOR':
-                            $replace = DIRECTORY_SEPARATOR;
                         default:
                             continue 2;
                     }
@@ -238,7 +226,7 @@ class Config
      */
     public function get($namespace)
     {
-        $names = preg_split('`[\\\\.]+`', $namespace, -1, PREG_SPLIT_NO_EMPTY);
+        $names = explode('\\', $namespace);
 
         return $this->getRecursive($this->config, $names);
     }
