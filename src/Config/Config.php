@@ -9,6 +9,8 @@
 
 namespace Eureka\Component\Config;
 
+use Eureka\Component\Yaml\Yaml;
+
 /**
  * Configuration class.
  *
@@ -47,15 +49,21 @@ class Config
     protected $cache = null;
 
     /**
+     * @var string $environment Current environement
+     */
+    protected $environment = 'dev';
+
+    /**
      * Class constructor.
      *
      * @param object|null $parser File parser.
      * @param object|null $cache Cache object.
      */
-    protected function __construct($parser = null, $cache = null)
+    public function __construct($environment = 'dev', $parser = null, $cache = null)
     {
-        $this->parser = $parser;
-        $this->cache  = $cache;
+        $this->parser      = $parser;
+        $this->cache       = $cache;
+        $this->environment = $environment;
     }
 
     /**
@@ -70,6 +78,11 @@ class Config
         }
 
         return static::$instance;
+    }
+
+    public function getEnvironment()
+    {
+        return $this->environment;
     }
 
     /**
@@ -127,7 +140,12 @@ class Config
     protected function addRecursive(&$config, $names, $data)
     {
         if (empty($names)) {
-            $config = $this->replace($data);
+            $data = $this->replace($data);
+            if (is_array($data)) {
+                $config = array_merge($config, $data);
+            } else {
+                $config = $data;
+            }
 
             return;
         }
@@ -151,7 +169,8 @@ class Config
         $patterns = array(
             'constants' => array(
                 '`EKA_[A-Z_]+`',
-            ), 'php'    => array(
+            ),
+            'php'       => array(
                 '__DIR__',
                 'DIRECTORY_SEPARATOR',
             ),
@@ -164,7 +183,7 @@ class Config
                 if (!is_string($config) || empty($config)) {
                     continue;
                 }
-                
+
                 if ((bool) preg_match_all($pattern, $config, $matches)) {
 
                     $matches   = array_unique($matches[0]);
@@ -189,7 +208,7 @@ class Config
                     continue;
                 }
 
-                if (strpos($pattern, $config) !== false) {
+                if (strpos($config, $pattern) !== false) {
 
                     switch ($pattern) {
                         case '__DIR__':
@@ -320,6 +339,27 @@ class Config
         $this->add($namespace, $config);
 
         $this->currentFile = '';
+
+        return $this;
+    }
+
+    /**
+     * Load yaml files from given directory.
+     *
+     * @param  string      $directory
+     * @param  string      $namespace
+     * @param  null|string $environment
+     * @return self
+     */
+    public function loadYamlFromDirectory($directory, $namespace = 'global.', $environment = null)
+    {
+        if ($environment === null) {
+            $environment = $this->environment;
+        }
+
+        foreach (glob($directory . '/*.yml') as $filename) {
+            $this->load($filename, $namespace . basename($filename, '.yml'), new Yaml(), $environment);
+        }
 
         return $this;
     }
