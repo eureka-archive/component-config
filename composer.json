@@ -16,6 +16,9 @@
     "psr-4": {
       "Eureka\\Component\\Config\\": "./src/Config/"
     }
-  }
+  },
 
+  "require": {
+    "eureka/component-yaml": "^1.0.0"
+  }
 }
