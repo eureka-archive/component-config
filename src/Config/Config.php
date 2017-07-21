@@ -112,9 +112,10 @@ class Config
      *
      * @param   string $namespace Configuration name.
      * @param   mixed  $data Configuration value.
+     * @param   bool $doReplace
      * @return  self
      */
-    public function add($namespace, $data = null)
+    public function add($namespace, $data = null, $doReplace = false)
     {
         $names = preg_split('`[\\\\.]+`', (string) $namespace, -1, PREG_SPLIT_NO_EMPTY);
 
@@ -124,7 +125,7 @@ class Config
             $this->config[$namespace] = array();
         };
 
-        $this->addRecursive($this->config[$namespace], $names, $data);
+        $this->addRecursive($this->config[$namespace], $names, $data, $doReplace);
 
         return $this;
     }
@@ -135,9 +136,10 @@ class Config
      * @param  array $config
      * @param  array $names
      * @param  mixed $data
+     * @param   bool $doReplace
      * @return void
      */
-    protected function addRecursive(&$config, $names, $data)
+    protected function addRecursive(&$config, $names, $data, $doReplace = false)
     {
         if (empty($names)) {
             $data = $this->replace($data);
@@ -151,7 +153,7 @@ class Config
         }
 
         $name = array_shift($names);
-        if (!isset($config[$name])) {
+        if ($doReplace || !isset($config[$name])) {
             $config[$name] = array();
         }
 
