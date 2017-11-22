@@ -1,7 +1,7 @@
 <?php
 
-/**
- * Copyright (c) 2010-2016 Romain Cottard
+/*
+ * Copyright (c) Romain Cottard
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -18,44 +18,31 @@ use Eureka\Component\Yaml\Yaml;
  */
 class Config
 {
-    /**
-     * @var string FILE_YAML Config file written in Yaml
-     */
+    /** @var string FILE_YAML Config file written in Yaml */
     const FILE_YAML = 'yaml';
 
-    /**
-     * @var string FILE_PHP Config file written in PHP
-     */
+    /** @var string FILE_PHP Config file written in PHP */
     const FILE_PHP = 'php';
 
-    /**
-     * @var Config $instance Current class instance.
-     */
+    /** @var Config $instance Current class instance. */
     protected static $instance = null;
 
-    /**
-     * @var array $config Array of config info
-     */
-    protected $config = array();
+    /** @var array $config Array of config info */
+    protected $config = [];
 
-    /**
-     * @var string $currentFile Current file loaded
-     */
+    /** @var string $currentFile Current file loaded */
     protected $currentFile = '';
 
-    /**
-     * @var object Cache object Cache object
-     */
+    /** @var object Cache object Cache object */
     protected $cache = null;
 
-    /**
-     * @var string $environment Current environement
-     */
+    /** @var string $environment Current environement */
     protected $environment = 'dev';
 
     /**
      * Class constructor.
      *
+     * @param string $environment
      * @param object|null $parser File parser.
      * @param object|null $cache Cache object.
      */
@@ -80,6 +67,11 @@ class Config
         return static::$instance;
     }
 
+    /**
+     * Get environment name.
+     *
+     * @return string
+     */
     public function getEnvironment()
     {
         return $this->environment;
@@ -100,20 +92,20 @@ class Config
      * Add config value(s).
      * Add new configuration value.
      * Example:
-     * $dbConfig = array(
+     * $dbConfig = [
      *     'host' => 'localhost',
      *     'user' => 'db_user',
      *     'pass' => 'mYpAsS',
-     * );
+     * ];
      * $config = Config::getIntance();
      * $config->add('database', $databaseConfig);
      * $config->add('database.host', 'newhost');
      * $config
      *
      * @param   string $namespace Configuration name.
-     * @param   mixed  $data Configuration value.
+     * @param   mixed $data Configuration value.
      * @param   bool $doReplace
-     * @return  self
+     * @return  $this
      */
     public function add($namespace, $data = null, $doReplace = false)
     {
@@ -122,10 +114,13 @@ class Config
         $namespace = array_shift($names);
 
         if (!isset($this->config[$namespace])) {
-            $this->config[$namespace] = array();
+            $this->config[$namespace] = [];
         };
 
         $this->addRecursive($this->config[$namespace], $names, $data, $doReplace);
+
+        //~ Replace references of other parameters final config file
+        $this->replaceReferences($this->config);
 
         return $this;
     }
@@ -136,7 +131,7 @@ class Config
      * @param  array $config
      * @param  array $names
      * @param  mixed $data
-     * @param   bool $doReplace
+     * @param  bool $doReplace
      * @return void
      */
     protected function addRecursive(&$config, $names, $data, $doReplace = false)
@@ -154,7 +149,7 @@ class Config
 
         $name = array_shift($names);
         if ($doReplace || !isset($config[$name])) {
-            $config[$name] = array();
+            $config[$name] = [];
         }
 
         $this->addRecursive($config[$name], $names, $data);
@@ -168,15 +163,15 @@ class Config
      */
     public function replace($config)
     {
-        $patterns = array(
-            'constants' => array(
+        $patterns = [
+            'constants' => [
                 '`EKA_[A-Z_]+`',
-            ),
-            'php'       => array(
+            ],
+            'php'       => [
                 '__DIR__',
                 'DIRECTORY_SEPARATOR',
-            ),
-        );
+            ],
+        ];
 
         if (!is_array($config)) {
 
@@ -189,7 +184,7 @@ class Config
                 if ((bool) preg_match_all($pattern, $config, $matches)) {
 
                     $matches   = array_unique($matches[0]);
-                    $constants = array('.' => '');
+                    $constants = ['.' => ''];
 
                     foreach ($matches as $index => $constant) {
                         $constants[$constant] = constant($constant);
@@ -243,11 +238,11 @@ class Config
      * Add config value(s).
      * Add new configuration value.
      * Example:
-     * $dbConfig = array(
+     * $dbConfig = [
      *     'host' => 'localhost',
      *     'user' => 'db_user',
      *     'pass' => 'mYpAsS',
-     * );
+     * ];
      * $config = Config::getIntance();
      * $config->add('database', $databaseConfig);
      * $config->add('database.host', 'newhost');
@@ -293,12 +288,12 @@ class Config
      * @param  string $namespace
      * @param  object $parser File parser
      * @param  string $env
-     * @return self
+     * @return $this
      * @throws \Exception
      */
     public function load($file, $namespace = '', $parser = null, $env = null)
     {
-        $config = array();
+        $config = [];
 
         $this->currentFile = $file;
 
@@ -317,7 +312,7 @@ class Config
             $config = $parser->load($file);
 
             if ($env !== null) {
-                $configTmp = array();
+                $configTmp = [];
 
                 //~ Firstable, pick section 'all' from config if section exists.
                 if (isset($config['all']) && is_array($config['all'])) {
@@ -346,12 +341,12 @@ class Config
     }
 
     /**
-     * Load yaml files from given directory.
+     * Load yaml files froem given directory.
      *
-     * @param  string      $directory
-     * @param  string      $namespace
+     * @param  string $directory
+     * @param  string $namespace
      * @param  null|string $environment
-     * @return self
+     * @return $this
      */
     public function loadYamlFromDirectory($directory, $namespace = 'global.', $environment = null)
     {
@@ -364,5 +359,37 @@ class Config
         }
 
         return $this;
+    }
+
+    /**
+     * Replace references values in all configurations.
+     *
+     * @param  array $config
+     * @return void
+     */
+    private function replaceReferences(array &$config)
+    {
+        foreach ($config as $key => &$value) {
+            if (is_array($value)) {
+                $this->replaceReferences($value);
+                continue;
+            }
+
+            //~ Not string, skip
+            if (!is_string($value)) {
+                continue;
+            }
+
+            //~ Value not %my.reference.config%, skip
+            if (!(bool) preg_match('`%(.*?)%`', $value, $matches)) {
+                continue;
+            }
+
+            $referenceValue = $this->get($matches[1]);
+
+            if ($referenceValue !== null) {
+                $value = $referenceValue;
+            }
+        }
     }
 }
