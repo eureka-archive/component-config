@@ -19,6 +19,6 @@
   },
 
   "require": {
-    "eureka/component-yaml": "^1.0.0"
+    "eureka/component-yaml": "^1.1"
   }
 }
