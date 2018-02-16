@@ -27,6 +27,9 @@ class Config
     /** @var Config $instance Current class instance. */
     protected static $instance = null;
 
+    /** @var object $parser Parser instance */
+    protected $parser = null;
+
     /** @var array $config Array of config info */
     protected $config = [];
 
@@ -36,7 +39,7 @@ class Config
     /** @var object Cache object Cache object */
     protected $cache = null;
 
-    /** @var string $environment Current environement */
+    /** @var string $environment Current environment */
     protected $environment = 'dev';
 
     /**
@@ -97,9 +100,9 @@ class Config
      *     'user' => 'db_user',
      *     'pass' => 'mYpAsS',
      * ];
-     * $config = Config::getIntance();
+     * $config = new Config();
      * $config->add('database', $databaseConfig);
-     * $config->add('database.host', 'newhost');
+     * $config->add('database.host', 'newHost');
      * $config
      *
      * @param   string $namespace Configuration name.
@@ -213,6 +216,7 @@ class Config
                             break;
                         case 'DIRECTORY_SEPARATOR':
                             $replace = DIRECTORY_SEPARATOR;
+                            break;
                         default:
                             continue 2;
                     }
@@ -243,9 +247,9 @@ class Config
      *     'user' => 'db_user',
      *     'pass' => 'mYpAsS',
      * ];
-     * $config = Config::getIntance();
+     * $config = new Config();
      * $config->add('database', $databaseConfig);
-     * $config->add('database.host', 'newhost');
+     * $config->add('database.host', 'newHost');
      * $config->get('database'); // array
      * $config->get('database.user'); // string
      *
@@ -289,7 +293,7 @@ class Config
      * @param  object $parser File parser
      * @param  string $env
      * @return $this
-     * @throws \Exception
+     * @throws \Eureka\Component\Config\Exception\InvalidConfigException
      */
     public function load($file, $namespace = '', $parser = null, $env = null)
     {
@@ -299,14 +303,14 @@ class Config
 
         //~ Check in cache
         if (is_object($this->cache)) {
-            $config = $this->cache->get('Eureka.Component.Config.Test.' . $env . '.' . md5($file) . '.cache');
+            $config = $this->cache->get('eureka.component.config.test.' . $env . '.' . md5($file) . '.cache');
         }
 
         //~ If not in cache or cache object not defined
         if (empty($config)) {
 
             if (!file_exists($file)) {
-                throw new \Exception('Configuration file does not exists !');
+                throw new Exception\InvalidConfigException('Configuration file does not exists !');
             }
 
             $config = $parser->load($file);
@@ -329,7 +333,7 @@ class Config
             }
 
             if (is_object($this->cache)) {
-                $this->cache->set('Eureka.Component.Config.Test.' . $env . '.' . md5($file) . '.cache', $config);
+                $this->cache->set('eureka.component.config.test.' . $env . '.' . md5($file) . '.cache', $config);
             }
         }
 
@@ -341,16 +345,18 @@ class Config
     }
 
     /**
-     * Load yaml files froem given directory.
+     * Load yaml files from given directory.
      *
      * @param  string $directory
      * @param  string $namespace
      * @param  null|string $environment
+     * @param  bool $forcedEnvironment
      * @return $this
+     * @throws \Eureka\Component\Config\Exception\InvalidConfigException
      */
-    public function loadYamlFromDirectory($directory, $namespace = 'global.', $environment = null)
+    public function loadYamlFromDirectory($directory, $namespace = 'app.', $environment = null, $forcedEnvironment = true)
     {
-        if ($environment === null) {
+        if ($forcedEnvironment && $environment === null) {
             $environment = $this->environment;
         }
 

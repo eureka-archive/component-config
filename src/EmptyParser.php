@@ -1,7 +1,7 @@
 <?php
 
-/**
- * Copyright (c) 2010-2016 Romain Cottard
+/*
+ * Copyright (c) Romain Cottard
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -26,7 +26,7 @@ class EmptyParser
     public function load($file)
     {
         if (!file_exists($file)) {
-            throw new \Exception('File to parse does not exists !');
+            throw new Exception\InvalidConfigException('File to parse does not exists !');
         }
 
         $content = (include $file);
@@ -43,10 +43,10 @@ class EmptyParser
      */
     public function dump($file, $content)
     {
-        $fileWrited = file_put_contents($file, '<?php return ' . var_export($content, true) . ';');
+        $fileWritten = file_put_contents($file, '<?php return ' . var_export($content, true) . ';');
 
-        if ($fileWrited === false) {
-            throw new \Exception('Unable to dump data into php file !');
+        if ($fileWritten === false) {
+            throw new Exception\ConfigException('Unable to dump data into php file !');
         }
     }
 }
