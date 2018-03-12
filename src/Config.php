@@ -36,9 +36,6 @@ class Config
     /** @var string $currentFile Current file loaded */
     protected $currentFile = '';
 
-    /** @var object Cache object Cache object */
-    protected $cache = null;
-
     /** @var string $environment Current environment */
     protected $environment = 'dev';
 
@@ -47,12 +44,10 @@ class Config
      *
      * @param string $environment
      * @param object|null $parser File parser.
-     * @param object|null $cache Cache object.
      */
-    public function __construct($environment = 'dev', $parser = null, $cache = null)
+    public function __construct($environment = 'dev', $parser = null)
     {
         $this->parser      = $parser;
-        $this->cache       = $cache;
         $this->environment = $environment;
     }
 
@@ -78,17 +73,6 @@ class Config
     public function getEnvironment()
     {
         return $this->environment;
-    }
-
-    /**
-     * Set cache object
-     *
-     * @param  object $cache
-     * @return void
-     */
-    public function setCache($cache)
-    {
-        $this->cache = $cache;
     }
 
     /**
@@ -297,44 +281,29 @@ class Config
      */
     public function load($file, $namespace = '', $parser = null, $env = null)
     {
-        $config = [];
-
         $this->currentFile = $file;
 
-        //~ Check in cache
-        if (is_object($this->cache)) {
-            $config = $this->cache->get('eureka.component.config.test.' . $env . '.' . md5($file) . '.cache');
+        if (!file_exists($file)) {
+            throw new Exception\InvalidConfigException('Configuration file does not exists !');
         }
 
-        //~ If not in cache or cache object not defined
-        if (empty($config)) {
+        $config = $parser->load($file);
 
-            if (!file_exists($file)) {
-                throw new Exception\InvalidConfigException('Configuration file does not exists !');
+        if ($env !== null) {
+            $configTmp = [];
+
+            //~ Firstable, pick section 'all' from config if section exists.
+            if (isset($config['all']) && is_array($config['all'])) {
+                $configTmp = $config['all'];
             }
 
-            $config = $parser->load($file);
-
-            if ($env !== null) {
-                $configTmp = [];
-
-                //~ Firstable, pick section 'all' from config if section exists.
-                if (isset($config['all']) && is_array($config['all'])) {
-                    $configTmp = $config['all'];
-                }
-
-                //~ Secondly, merge recursively with section corresponding with environment if section exists.
-                if (isset($config[$env]) && is_array($config[$env])) {
-                    $configTmp = array_replace_recursive($configTmp, $config[$env]);
-                }
-
-                //~ Set merged configurations into main array.
-                $config = $configTmp;
+            //~ Secondly, merge recursively with section corresponding with environment if section exists.
+            if (isset($config[$env]) && is_array($config[$env])) {
+                $configTmp = array_replace_recursive($configTmp, $config[$env]);
             }
 
-            if (is_object($this->cache)) {
-                $this->cache->set('eureka.component.config.test.' . $env . '.' . md5($file) . '.cache', $config);
-            }
+            //~ Set merged configurations into main array.
+            $config = $configTmp;
         }
 
         $this->add($namespace, $config);
@@ -368,10 +337,47 @@ class Config
     }
 
     /**
+     * @param  string $filename
+     * @param  string $path
+     * @return $this
+     * @throws \Eureka\Component\Config\Exception\FileCacheNotFoundException
+     */
+    public function loadFromCache($filename, $path = '')
+    {
+        $filePathname = $path . DIRECTORY_SEPARATOR . $this->environment . '_' . $filename;
+
+        if (!is_readable($filePathname)) {
+            throw new Exception\FileCacheNotFoundException();
+        }
+
+        $this->config = include($filePathname);
+
+        return $this;
+    }
+
+    /**
+     * @param  string $filename
+     * @param  string $path
+     * @return $this
+     * @throws \Eureka\Component\Config\Exception\ConfigException
+     */
+    public function dumpCache($filename, $path = '')
+    {
+        $filePathname = $path . DIRECTORY_SEPARATOR . $this->environment . '_' . $filename;
+
+        if (!file_put_contents($filePathname, "<?php\n\nreturn " . var_export($this->config, true) . ';')) {
+            throw new Exception\ConfigException('Cannot write cache file.');
+        }
+
+        return $this;
+    }
+
+    /**
      * Replace references values in all configurations.
      *
      * @param  array $config
      * @return void
+     * @throws \Eureka\Component\Config\Exception\ConfigException
      */
     private function replaceReferences(array &$config)
     {
@@ -387,15 +393,29 @@ class Config
             }
 
             //~ Value not %my.reference.config%, skip
-            if (!(bool) preg_match('`%(.*?)%`', $value, $matches)) {
+            if (!(bool) ($count = preg_match_all('`%(.*?)%`', $value, $matches))) {
                 continue;
             }
 
-            $referenceValue = $this->get($matches[1]);
-
-            if ($referenceValue !== null) {
-                $value = $referenceValue;
+            if ($count === 1) {
+                $replaceValue = $this->get($matches[1][0]);
+                if ($replaceValue === null) {
+                    continue;
+                }
+                $value = is_array($replaceValue) ? $replaceValue : str_replace($matches[0], $replaceValue, $value);
+                continue;
             }
+
+            $replacements = $matches;
+            foreach ($matches[1] as $index => $match) {
+                $replacements[1][$index] = $this->get($match);
+
+                if (!is_string($replacements[1][$index]) && $count > 1) {
+                    throw new Exception\ConfigException('Invalid config: multiple replacement must be strings');
+                }
+            }
+
+            $value = str_replace($replacements[0], $replacements[1], $value);
         }
     }
 }
