@@ -93,6 +93,7 @@ class Config
      * @param   mixed $data Configuration value.
      * @param   bool $doReplace
      * @return  $this
+     * @throws  \Eureka\Component\Config\Exception\ConfigException
      */
     public function add($namespace, $data = null, $doReplace = false)
     {
@@ -240,11 +241,24 @@ class Config
      * @param  string $namespace Configuration name.
      * @return mixed
      */
-    public function get($namespace)
+    public function get($namespace = '')
     {
         $names = preg_split('`[\\\\.]+`', $namespace, -1, PREG_SPLIT_NO_EMPTY);
 
         return $this->getRecursive($this->config, $names);
+    }
+
+    /**
+     * Set config values.
+     *
+     * @param  array $config
+     * @return $this
+     */
+    public function set(array $config)
+    {
+        $this->config = $config;
+
+        return $this;
     }
 
     /**
@@ -278,6 +292,7 @@ class Config
      * @param  string $env
      * @return $this
      * @throws \Eureka\Component\Config\Exception\InvalidConfigException
+     * @throws \Eureka\Component\Config\Exception\ConfigException
      */
     public function load($file, $namespace = '', $parser = null, $env = null)
     {
@@ -322,6 +337,7 @@ class Config
      * @param  bool $forcedEnvironment
      * @return $this
      * @throws \Eureka\Component\Config\Exception\InvalidConfigException
+     * @throws \Eureka\Component\Config\Exception\ConfigException
      */
     public function loadYamlFromDirectory($directory, $namespace = 'app.', $environment = null, $forcedEnvironment = true)
     {
@@ -331,42 +347,6 @@ class Config
 
         foreach (glob($directory . '/*.yml') as $filename) {
             $this->load($filename, $namespace . basename($filename, '.yml'), new Yaml(), $environment);
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param  string $filename
-     * @param  string $path
-     * @return $this
-     * @throws \Eureka\Component\Config\Exception\FileCacheNotFoundException
-     */
-    public function loadFromCache($filename, $path = '')
-    {
-        $filePathname = $path . DIRECTORY_SEPARATOR . $this->environment . '_' . $filename;
-
-        if (!is_readable($filePathname)) {
-            throw new Exception\FileCacheNotFoundException();
-        }
-
-        $this->config = include($filePathname);
-
-        return $this;
-    }
-
-    /**
-     * @param  string $filename
-     * @param  string $path
-     * @return $this
-     * @throws \Eureka\Component\Config\Exception\ConfigException
-     */
-    public function dumpCache($filename, $path = '')
-    {
-        $filePathname = $path . DIRECTORY_SEPARATOR . $this->environment . '_' . $filename;
-
-        if (!file_put_contents($filePathname, "<?php\n\nreturn " . var_export($this->config, true) . ';')) {
-            throw new Exception\ConfigException('Cannot write cache file.');
         }
 
         return $this;
