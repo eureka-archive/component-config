@@ -10,22 +10,20 @@
 namespace Eureka\Component\Config;
 
 use Eureka\Component\Yaml\Yaml;
+use Psr\Container\ContainerInterface;
 
 /**
  * Configuration class.
  *
  * @author Romain Cottard
  */
-class Config
+class Config implements ContainerInterface
 {
     /** @var string FILE_YAML Config file written in Yaml */
     const FILE_YAML = 'yaml';
 
     /** @var string FILE_PHP Config file written in PHP */
     const FILE_PHP = 'php';
-
-    /** @var Config $instance Current class instance. */
-    protected static $instance = null;
 
     /** @var object $parser Parser instance */
     protected $parser = null;
@@ -37,7 +35,7 @@ class Config
     protected $currentFile = '';
 
     /** @var string $environment Current environment */
-    protected $environment = 'dev';
+    protected $environment = '';
 
     /**
      * Class constructor.
@@ -45,24 +43,10 @@ class Config
      * @param string $environment
      * @param object|null $parser File parser.
      */
-    public function __construct($environment = 'dev', $parser = null)
+    public function __construct($environment = 'prod', $parser = null)
     {
         $this->parser      = $parser;
         $this->environment = $environment;
-    }
-
-    /**
-     * Singleton pattern method to get current instance.
-     *
-     * @return Config
-     */
-    public static function getInstance()
-    {
-        if (static::$instance === null) {
-            static::$instance = new Config();
-        }
-
-        return static::$instance;
     }
 
     /**
@@ -246,6 +230,15 @@ class Config
         $names = preg_split('`[\\\\.]+`', $namespace, -1, PREG_SPLIT_NO_EMPTY);
 
         return $this->getRecursive($this->config, $names);
+    }
+
+    /**
+     * @param  string $namespace
+     * @return bool
+     */
+    public function has($namespace)
+    {
+        return ($this->get($namespace) !== null);
     }
 
     /**
