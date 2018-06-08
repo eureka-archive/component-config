@@ -194,9 +194,6 @@ class Config implements ContainerInterface
                 }
             }
 
-            if (false !== strpos($config, '..')) {
-                $config = realpath($config);
-            }
         } elseif (is_array($config)) {
 
             foreach ($config as $key => $conf) {
@@ -375,7 +372,8 @@ class Config implements ContainerInterface
                 if ($replaceValue === null) {
                     continue;
                 }
-                $value = is_array($replaceValue) ? $replaceValue : str_replace($matches[0], $replaceValue, $value);
+
+                $value = !is_string($replaceValue) ? $replaceValue : str_replace($matches[0], $replaceValue, $value);
                 continue;
             }
 
